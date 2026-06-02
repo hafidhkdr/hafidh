@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen p-4 md:p-8">
+  <div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="bg-blue-800 text-white p-6 rounded-t-2xl shadow-xl">
+      <h1 class="text-2xl font-bold tracking-wide">DATA INPUT TRACKER</h1>
+      <p class="text-blue-200 text-sm opacity-80 mt-1 italic">Sistem Monitoring Akurasi Data Staff</p>
+    </div>
+    
+    <!-- Form Input -->
+    <div class="bg-white p-8 rounded-b-2xl shadow-xl border border-gray-100 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-semibold text-gray-600">Pilih User</label>
+          <select id="nama" class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" onchange="updateTim()">
+            <option value="">-- Pilih User --</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-semibold text-gray-600">Tim</label>
+          <input type="text" id="tim" readonly class="p-3 border border-gray-300 rounded-lg bg-slate-100 text-slate-500" placeholder="Terisi Otomatis">
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-semibold text-gray-600">Kategori</label>
+          <input type="text" id="kategori" class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Contoh: AFTER DRAFT">
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-semibold text-gray-600">Item</label>
+          <input type="text" id="item" class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Contoh: PL 2960">
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-semibold text-gray-600">Risk</label>
+          <select id="risk" class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="">-- Pilih Risk --</option>
+            <option>LOW</option>
+            <option>MIDDLE</option>
+            <option>HIGH</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-semibold text-gray-600">Status</label>
+          <select id="status" class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="OPEN">OPEN</option>
+            <option value="CLOSED">CLOSED</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-2 md:col-span-3">
+          <label class="text-sm font-semibold text-gray-600">Permasalahan</label>
+          <textarea id="permasalahan" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" rows="3" placeholder="Jelaskan permasalahan secara detail..."></textarea>
+        </div>
+      </div>
+      
+      <!-- Tombol Kirim Data diperkecil dan diletakkan di kiri -->
+      <div class="mt-8">
+        <button onclick="submit()" id="btnSubmit" class="bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 px-6 rounded-lg shadow-sm transition-all transform active:scale-[0.98]">
+          Kirim Data
+        </button>
+      </div>
+    </div>
+
+    <!-- Log History -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+      <h2 class="text-lg font-bold text-gray-700 mb-4">Log 10 Input Terakhir</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="bg-slate-800 text-white">
+            <tr>
+              <th class="p-4">Timestamp</th>
+              <th class="p-4">User</th>
+              <th class="p-4">Kategori</th>
+              <th class="p-4">Item</th>
+              <th class="p-4">Permasalahan</th>
+              <th class="p-4">Risk</th>
+              <th class="p-4">Status</th>
+            </tr>
+          </thead>
+          <tbody id="dataTable" class="divide-y divide-gray-100">
+             <tr><td colspan="7" class="p-4 text-center">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let staffMap = {};
+    const isGAS = typeof google !== 'undefined' && google.script;
+
+    window.onload = () => {
+      if (isGAS) {
+        google.script.run.withSuccessHandler(map => {
+          staffMap = map;
+          const select = document.getElementById('nama');
+          Object.values(map).flat().forEach(name => {
+            select.innerHTML += `<option value="${name}">${name}</option>`;
+          });
+          refreshTable();
+        }).getStaffData();
+      }
+    };
+
+    function updateTim() {
+      const nama = document.getElementById('nama').value;
+      for (let tim in staffMap) {
+        if (staffMap[tim].includes(nama)) { document.getElementById('tim').value = tim; return; }
+      }
+      document.getElementById('tim').value = '';
+    }
+
+    function clearForm() {
+      document.getElementById('nama').value = '';
+      document.getElementById('tim').value = '';
+      document.getElementById('kategori').value = '';
+      document.getElementById('item').value = '';
+      document.getElementById('permasalahan').value = '';
+      document.getElementById('risk').value = '';
+      document.getElementById('status').value = 'OPEN';
+    }
+
+    function submit() {
+      const data = { 
+        nama: document.getElementById('nama').value, 
+        tim: document.getElementById('tim').value, 
+        kategori: document.getElementById('kategori').value, 
+        item: document.getElementById('item').value, 
+        permasalahan: document.getElementById('permasalahan').value, 
+        risk: document.getElementById('risk').value, 
+        status: document.getElementById('status').value 
+      };
+      
+      if (!data.nama || !data.kategori) return alert("Harap isi User dan Kategori!");
+      
+      document.getElementById('btnSubmit').innerText = 'Mengirim...';
+      document.getElementById('btnSubmit').disabled = true;
+      
+      google.script.run
+        .withSuccessHandler(() => {
+          document.getElementById('btnSubmit').innerText = 'Kirim Data';
+          document.getElementById('btnSubmit').disabled = false;
+          clearForm();
+          // Panggil refreshTable setelah sukses kirim untuk memastikan data baru masuk
+          refreshTable();
+        })
+        .withFailureHandler((err) => {
+           alert("Gagal mengirim data: " + err);
+           document.getElementById('btnSubmit').innerText = 'Kirim Data';
+           document.getElementById('btnSubmit').disabled = false;
+        })
+        .submitData(data);
+    }
+
+    function refreshTable() {
+      if (!isGAS) return;
+      document.getElementById('dataTable').innerHTML = '<tr><td colspan="7" class="p-4 text-center">Memuat...</td></tr>';
+      
+      google.script.run
+        .withSuccessHandler(data => {
+          const tbody = document.getElementById('dataTable');
+          if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center">Belum ada data</td></tr>';
+            return;
+          }
+          tbody.innerHTML = data.map(r => `<tr>
+            <td class="p-4 text-gray-500 whitespace-nowrap">${r[0]}</td>
+            <td class="p-4 font-bold text-gray-800">${r[1]}</td>
+            <td class="p-4 text-gray-600">${r[3]}</td>
+            <td class="p-4 font-medium">${r[4]}</td>
+            <td class="p-4 text-gray-600 max-w-[200px] truncate">${r[5]}</td>
+            <td class="p-4"><span class="px-3 py-1 rounded-full text-xs font-bold text-white ${r[6] === 'LOW' ? 'bg-green-600' : 'bg-orange-500'}">${r[6]}</span></td>
+            <td class="p-4 font-bold text-blue-700">${r[7]}</td>
+          </tr>`).join('');
+        })
+        .withFailureHandler(err => {
+          console.error("Gagal ambil data:", err);
+          document.getElementById('dataTable').innerHTML = '<tr><td colspan="7" class="p-4 text-center text-red-500">Gagal memuat data</td></tr>';
+        })
+        .fetchData();
+    }
+  </script>
+</body>
+</html>
